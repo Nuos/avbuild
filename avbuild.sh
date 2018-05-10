@@ -44,7 +44,7 @@ test -f $USER_CONFIG &&  . $USER_CONFIG
 : ${LIB_OPT:="--enable-shared"}
 #: ${FEATURE_OPT:="--enable-hwaccels"}
 : ${DEBUG_OPT:="--disable-debug"}
-: {FORCE_LTO:=false}
+: ${FORCE_LTO:=false}
 : ${FFSRC:=$PWD/ffmpeg}
 [ ! "${LIB_OPT/disable-static/}" == "${LIB_OPT}" ] && FORCE_LTO=true
 # other env vars to control build: NO_ENC, BITCODE, WINPHONE, VC_BUILD, FORCE_LTO (bool)
@@ -285,6 +285,7 @@ setup_win(){
 
 setup_win_clang(){
 # -imsvc: add msvc system header path
+  grep -q '# win clang static' "$FFSRC/configure" || sed -i $sed_bak 's/\(disable static\)/test "$cc_type" != "clang" \&\& \1 # win clang static + shared/g' "$FFSRC/configure"
   : ${USE_TOOLCHAIN:=clang}
   setup_cc $USE_TOOLCHAIN
   USE_LD=$($USE_TOOLCHAIN -print-prog-name=lld-link) use_lld # lld 6.0 fixes undefined __enclave_config in msvcrt14.12. `lld -flavor link` just warns --version-script and results in link error
@@ -292,6 +293,7 @@ setup_win_clang(){
   #use_lld # --target=i386-pc-windows-msvc19.13.0 -fuse-ld=lld: must use with -Wl,
   enable_lto=false # ffmpeg: "LTO requires same compiler and linker"
   # lto: link error if clang and lld version does not mach?
+  # TODO: patch ffmpeg. ffmpeg disables lto (enabled by --enable-lto) if "$cc_type" != "$ld_type"
   $FORCE_LTO && LTO_CFLAGS=-flto # TODO: thin lto avcodec link error
   LTO_LFLAGS="/opt:lldltojobs=`getconf _NPROCESSORS_ONLN`" # only affects thin lto?
   enable_opt dxva2
